@@ -6,12 +6,31 @@
     android:layout_height="match_parent"
     tools:context="com.example.picturesaver.MainActivity">
 
+    <GridView
+        android:id="@+id/thumbnail_holder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:columnWidth="150dp"
+        android:numColumns="auto_fit"
+        android:stretchMode="columnWidth"
+        android:gravity="center"
+        android:horizontalSpacing="8dp"
+        android:verticalSpacing="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginRight="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.0" />
 
     <ImageButton
         android:id="@+id/imageButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
+        android:layout_marginEnd="16dp"
         android:layout_marginRight="16dp"
         android:background="@android:drawable/dialog_holo_light_frame"
         android:onClick="takePicture"
@@ -19,4 +38,6 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:srcCompat="@android:drawable/ic_menu_camera" />
+
+
 </android.support.constraint.ConstraintLayout>
