@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">PictureSaver</string>
     <string name="picture_cancelled">Cancelled</string>
+    <string name="action_cancelled">Must Enable Permission</string>
 </resources>

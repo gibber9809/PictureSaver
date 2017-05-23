@@ -80,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     //takePicture(null);
                 } else {
-                    //this.finish();
+                    Toast.makeText(this, R.string.action_cancelled, Toast.LENGTH_SHORT).show();
                 }
         }
     }
@@ -96,6 +96,7 @@ public class MainActivity extends AppCompatActivity {
                 String ext2 = name.substring(name.length() - 4);
                 for (String extension: supportedFormats) {
                     if (ext1.equals(extension) || ext2.equals(extension)) {
+                        //toLoad.delete();
                         mAdapter.add(toLoad.getPath());
                     }
                 }
@@ -164,8 +165,13 @@ public class MainActivity extends AppCompatActivity {
             return mFilePaths.get(position).hashCode();
         }
 
+        @Override
+        public boolean hasStableIds() {
+            return true;
+        }
+
         public View getView(int position, View convertView, ViewGroup parent) {
-            if (convertView == null) {
+            if (convertView == null || convertView.getTag() != mFilePaths.get(position)) {
                 View tempView = getLayoutInflater().inflate(R.layout.thumbnail, parent, false);
 
                 //Set Bitmap for thumbnail
@@ -182,6 +188,9 @@ public class MainActivity extends AppCompatActivity {
                 //Set text for location (for now it is just filename)
                 TextView tempText = (TextView) tempView.findViewById(R.id.location);
                 tempText.setText(mFilePaths.get(position));
+
+                //set tag to avoid item duplication
+                tempView.setTag(mFilePaths.get(position));
 
                 return tempView;
             }
