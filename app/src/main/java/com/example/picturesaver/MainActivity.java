@@ -3,10 +3,13 @@ package com.example.picturesaver;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
@@ -19,6 +22,15 @@ import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthResult;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,14 +48,20 @@ public class MainActivity extends AppCompatActivity {
     private String mCurrentFile = null;
     private thumbnailAdapter mAdapter = null;
 
+    private FirebaseAuth mAuth;
+    private StorageReference mRoot;
+    private DatabaseReference mData;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mAuth = FirebaseAuth.getInstance();
+        mRoot = FirebaseStorage.getInstance().getReference();
+        mData = FirebaseDatabase.getInstance().getReference();
 
         mAdapter = new thumbnailAdapter(new ArrayList<String>());
-
         mThumbGrid =(GridView) findViewById(R.id.thumbnail_holder);
         mThumbGrid.setAdapter(mAdapter);
 
@@ -56,17 +74,51 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+
+        if (mAuth.getCurrentUser() == null) {
+            mAuth.signInAnonymously().addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+                @Override
+                public void onComplete(@NonNull Task<AuthResult> task) {
+                    if (!task.isSuccessful()) {
+                        Toast.makeText(MainActivity.this, R.string.anon_auth_failed,
+                                Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+        }
+    }
+
+    @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_IMAGE_CAPTURE) {
             if (resultCode == RESULT_OK) {
                 Intent scanNewMedia = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
                 File f = new File(mCurrentFile);
-                Uri pictureURI = Uri.fromFile(f);
+                Uri pictureURI = FileProvider.getUriForFile(this, "com.example.fileprovider", f);
                 scanNewMedia.setData(pictureURI);
                 this.sendBroadcast(scanNewMedia);
 
+                //temporary until really using location
+                try {
+                    ExifInterface metaWriter = new ExifInterface(f.getPath());
+                    metaWriter.setAttribute(ExifInterface.TAG_GPS_LONGITUDE,"1/1");
+                    metaWriter.setAttribute(ExifInterface.TAG_GPS_LATITUDE, "127/1");
+                    metaWriter.saveAttributes();
+                }catch(IOException e) {
+                    //Safe to ignore
+                }
+
                 mAdapter.add(mCurrentFile);
                 mAdapter.notifyDataSetChanged();
+
+                //All just basic implementation, worry about edge cases later
+                mRoot.child("images/" + pictureURI.getLastPathSegment()).putFile(pictureURI);
+
+                String key = mData.push().getKey();
+                mData.child(key).setValue(pictureURI.getLastPathSegment());
+
             } else if (resultCode == RESULT_CANCELED) {
                 Toast.makeText(this, R.string.picture_cancelled, Toast.LENGTH_SHORT).show();
             }
@@ -74,7 +126,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
         switch(requestCode) {
             case REQUEST_STORAGE_PERMISSION:
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
@@ -89,6 +141,7 @@ public class MainActivity extends AppCompatActivity {
         File mediaDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);
         File[] mediaList = mediaDirectory.listFiles();
 
+        //TODO improve this
         for (File toLoad: mediaList) {
             String name = toLoad.getName();
             if (name.length() >= 4){
@@ -175,19 +228,44 @@ public class MainActivity extends AppCompatActivity {
                 View tempView = getLayoutInflater().inflate(R.layout.thumbnail, parent, false);
 
                 //Set Bitmap for thumbnail
-                BitmapFactory.Options opts = new BitmapFactory.Options();
-                opts.inJustDecodeBounds = false;
+                Bitmap imageBitmap;
+                ExifInterface dataReader;
+                try {
+                    dataReader = new ExifInterface(mFilePaths.get(position));
+                } catch(IOException e) {
+                    dataReader = null;
+                }
 
-                int scaleTarget =(int) getResources().getDisplayMetrics().density * SCALE_FACTOR;
+                if (dataReader != null && dataReader.hasThumbnail()) {
+                    byte[] image = dataReader.getThumbnail();
+                    imageBitmap = BitmapFactory.decodeByteArray(image, 0, image.length);
+                }else {
+                    BitmapFactory.Options opts = new BitmapFactory.Options();
+                    opts.inJustDecodeBounds = false;
 
-                opts.inSampleSize = getInSampleSize(mFilePaths.get(position),
-                        scaleTarget);
+                    int scaleTarget = (int) getResources().getDisplayMetrics().density * SCALE_FACTOR;
+
+                    opts.inSampleSize = getInSampleSize(mFilePaths.get(position),
+                            scaleTarget);
+
+                    imageBitmap = BitmapFactory.decodeFile(mFilePaths.get(position), opts);
+                }
                 ImageView tempImage = (ImageView) tempView.findViewById(R.id.thumbnail);
-                tempImage.setImageBitmap(BitmapFactory.decodeFile(mFilePaths.get(position), opts));
+                tempImage.setImageBitmap(imageBitmap);
 
-                //Set text for location (for now it is just filename)
-                TextView tempText = (TextView) tempView.findViewById(R.id.location);
-                tempText.setText(mFilePaths.get(position));
+                //Set text for location
+                float[] coords = new float[2];
+                if (dataReader != null &&
+                        getLatLong(
+                        coords,
+                        dataReader.getAttribute(ExifInterface.TAG_GPS_LATITUDE),
+                        dataReader.getAttribute(ExifInterface.TAG_GPS_LONGITUDE))) {
+
+                    TextView tempText = (TextView) tempView.findViewById(R.id.location);
+                    tempText.setText(getString(R.string.gps_format,
+                            coords[0],
+                            coords[1]));
+                }
 
                 //set tag to avoid item duplication
                 tempView.setTag(mFilePaths.get(position));
@@ -199,6 +277,22 @@ public class MainActivity extends AppCompatActivity {
 
         public void add(String path) {
             mFilePaths.add(path);
+        }
+        private boolean getLatLong(float[] coords, String lat, String lon) {
+            if (lat == null || lon == null)
+                return false;
+            String[] split;
+
+            try {
+                split = lat.split("/");
+                coords[0] = Float.valueOf(split[0]) / Float.valueOf(split[1]);
+
+                split = lon.split("/");
+                coords[1] = Float.valueOf(split[0]) / Float.valueOf(split[1]);
+                return true;
+            } catch (ArrayIndexOutOfBoundsException e) {
+                return false;
+            }
         }
     }
 
