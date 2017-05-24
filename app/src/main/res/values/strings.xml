@@ -3,5 +3,7 @@
     <string name="picture_cancelled">Cancelled</string>
     <string name="action_cancelled">Must Enable Permission</string>
     <string name="anon_auth_failed">Unable to sign into firebase</string>
-    <string name="gps_format">\"%1$.3f %2$.3f\"</string>
+    <string name="gps_format">%1$.2f %2$.2f</string>
+    <string name="delete_button">Delete</string>
+    <string name="restore_button">Restore</string>
 </resources>

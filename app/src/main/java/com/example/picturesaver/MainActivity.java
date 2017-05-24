@@ -15,6 +15,8 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -44,7 +46,6 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_IMAGE_CAPTURE = 1;
     private static final int REQUEST_STORAGE_PERMISSION = 100;
     private static final String[] supportedFormats = {"jpg", "png", "bmp", "webp"};
-    private GridView mThumbGrid = null;
     private String mCurrentFile = null;
     private thumbnailAdapter mAdapter = null;
 
@@ -62,8 +63,8 @@ public class MainActivity extends AppCompatActivity {
         mData = FirebaseDatabase.getInstance().getReference();
 
         mAdapter = new thumbnailAdapter(new ArrayList<String>());
-        mThumbGrid =(GridView) findViewById(R.id.thumbnail_holder);
-        mThumbGrid.setAdapter(mAdapter);
+        GridView thumbGrid =(GridView) findViewById(R.id.thumbnail_holder);
+        thumbGrid.setAdapter(mAdapter);
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
             loadCurrentImages();
@@ -71,6 +72,24 @@ public class MainActivity extends AppCompatActivity {
             requestStoragePermission();
         }
 
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.restore_photos, menu);
+
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch(item.getItemId()) {
+            case R.id.restore_button:
+                //do stuff
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     @Override
@@ -142,6 +161,8 @@ public class MainActivity extends AppCompatActivity {
         File[] mediaList = mediaDirectory.listFiles();
 
         //TODO improve this
+        //loadAll(mediaList);
+
         for (File toLoad: mediaList) {
             String name = toLoad.getName();
             if (name.length() >= 4){
@@ -157,6 +178,25 @@ public class MainActivity extends AppCompatActivity {
         }
         mAdapter.notifyDataSetChanged();
     }
+
+    /*private void loadAll(File[] mediaList) {
+        for (File toLoad: mediaList) {
+            if (toLoad.isDirectory()) {
+                loadAll(toLoad.listFiles());
+            } else {
+                String name = toLoad.getName();
+                if (name.length() >= 4) {
+                    String ext1 = name.substring(name.length() - 3);
+                    String ext2 = name.substring(name.length() - 4);
+                    for (String extension : supportedFormats) {
+                        if (ext1.equals(extension) || ext2.equals(extension)) {
+                            mAdapter.add(toLoad.getPath());
+                        }
+                    }
+                }
+            }
+        }
+    }*/
 
     private File makeNewFile() throws IOException {
         String dateStamp = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_").format(new Date());
@@ -198,7 +238,7 @@ public class MainActivity extends AppCompatActivity {
                 REQUEST_STORAGE_PERMISSION);
     }
 
-    private class thumbnailAdapter extends BaseAdapter {
+    class thumbnailAdapter extends BaseAdapter {
         private ArrayList<String> mFilePaths;
         private static final int SCALE_FACTOR = 200;
 
@@ -267,6 +307,8 @@ public class MainActivity extends AppCompatActivity {
                             coords[1]));
                 }
 
+                tempView.setOnClickListener(generateNewClickListener(mFilePaths.get(position)));
+
                 //set tag to avoid item duplication
                 tempView.setTag(mFilePaths.get(position));
 
@@ -294,9 +336,19 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         }
+
+        private View.OnClickListener generateNewClickListener(final String filePath) {
+            return new View.OnClickListener() {
+                public void onClick(View v) {
+                    Intent viewPhoto = new Intent(MainActivity.this, PictureViewer.class);
+                    viewPhoto.putExtra(PictureViewer.FILE_PATH_KEY, filePath);
+                    startActivity(viewPhoto);
+                }
+            };
+        }
     }
 
-    private int getInSampleSize(String filename, int targetScale) {
+    static int getInSampleSize(String filename, int targetScale) {
         int inSampleSize = 1;
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inJustDecodeBounds = true;
