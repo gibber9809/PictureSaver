@@ -54,8 +54,7 @@ public class PictureViewer extends AppCompatActivity
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
-
-
+                //Probably offline
             }
         });
 
@@ -84,14 +83,15 @@ public class PictureViewer extends AppCompatActivity
             case R.id.delete_button:
                 File f = new File(mFilePath);
 
-                //TODO fix this first thing
                 if (mDatabaseKey != null) {
                     mFilename = f.getName();
                     DeleteFragment deleteDialog = new DeleteFragment();
                     deleteDialog.show(getSupportFragmentManager(), null);
-                    f.delete();
+                    if (!f.delete())
+                        f.delete();
                 } else {
-                    f.delete();
+                    if (!f.delete())
+                        f.delete();
                     this.finish();
                 }
 

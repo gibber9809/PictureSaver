@@ -7,7 +7,11 @@
     <string name="delete_button">Delete</string>
     <string name="restore_button">Restore</string>
     <string name="delete_also_title">Do you also want to delete the remote copy?</string>
-    <string name="delete_extra_info">Doing so will permanently delete the picture.</string>
+    <string name="delete_extra_info">Doing so will permanently delete the image permanently.</string>
     <string name="accept_button">Yes</string>
     <string name="deny_button">No</string>
+    <string name="restore_failed">Failed to restore pictures</string>
+    <string name="downloads_finished">Download Complete</string>
+    <string name="downloads_started">Download Started, please do not fully close the app</string>
+    <string name="downloads_unnecessary">Photos up to date</string>
 </resources>
