@@ -66,12 +66,6 @@ public class MainActivity extends AppCompatActivity {
         GridView thumbGrid =(GridView) findViewById(R.id.thumbnail_holder);
         thumbGrid.setAdapter(mAdapter);
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-            loadCurrentImages();
-        } else {
-            requestStoragePermission();
-        }
-
     }
 
     @Override
@@ -95,6 +89,12 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+            mAdapter.clear();
+            loadCurrentImages();
+        } else {
+            requestStoragePermission();
+        }
 
         if (mAuth.getCurrentUser() == null) {
             mAuth.signInAnonymously().addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
@@ -320,6 +320,12 @@ public class MainActivity extends AppCompatActivity {
         public void add(String path) {
             mFilePaths.add(path);
         }
+
+        public void clear() {
+            mFilePaths.clear();
+        }
+
+        //TODO Remove once using actual GPS data
         private boolean getLatLong(float[] coords, String lat, String lon) {
             if (lat == null || lon == null)
                 return false;

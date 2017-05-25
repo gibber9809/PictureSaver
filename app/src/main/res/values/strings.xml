@@ -6,4 +6,8 @@
     <string name="gps_format">%1$.2f %2$.2f</string>
     <string name="delete_button">Delete</string>
     <string name="restore_button">Restore</string>
+    <string name="delete_also_title">Do you also want to delete the remote copy?</string>
+    <string name="delete_extra_info">Doing so will permanently delete the picture.</string>
+    <string name="accept_button">Yes</string>
+    <string name="deny_button">No</string>
 </resources>
