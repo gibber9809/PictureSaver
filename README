@@ -1,0 +1,5 @@
+This is an app to allow you to take and store photos with the location they were taken.
+Photos are stored both locally, and on a remote firebase firebase server.
+This application uses firebase's storage, and realtime database to upload, track, and download photos that are not
+stored locally. To use the firebase features start a new firebase project, make sure that anonymous authentication
+is enabled, and copy the google-services.json file into the app/ directory when prompted.
