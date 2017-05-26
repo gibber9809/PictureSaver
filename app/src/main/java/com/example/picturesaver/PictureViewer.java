@@ -1,12 +1,17 @@
 package com.example.picturesaver;
 
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.BitmapFactory;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ImageView;
+import android.Manifest.permission;
 import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -19,11 +24,11 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
 import java.io.File;
-import java.util.Map;
 
 public class PictureViewer extends AppCompatActivity
         implements DeleteFragment.DeleteFragmentListener{
     public static final String FILE_PATH_KEY = "FILE_PATH_KEY";
+    private static final int REQUEST_STORAGE_PERMISSION = 124;
     private String mFilePath;
     private String mFilename;
     private StorageReference mStore;
@@ -78,21 +83,34 @@ public class PictureViewer extends AppCompatActivity
         return super.onCreateOptionsMenu(menu);
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (grantResults.length <= 0) {
+            Toast.makeText(this, R.string.action_cancelled, Toast.LENGTH_SHORT).show();
+        }
+    }
+
     public boolean onOptionsItemSelected(MenuItem item) {
         switch(item.getItemId()) {
             case R.id.delete_button:
-                File f = new File(mFilePath);
+                if (ContextCompat.checkSelfPermission(this, permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+                    File f = new File(mFilePath);
 
-                if (mDatabaseKey != null) {
-                    mFilename = f.getName();
-                    DeleteFragment deleteDialog = new DeleteFragment();
-                    deleteDialog.show(getSupportFragmentManager(), null);
-                    if (!f.delete())
-                        f.delete();
+                    if (mDatabaseKey != null) {
+                        mFilename = f.getName();
+                        DeleteFragment deleteDialog = new DeleteFragment();
+                        deleteDialog.show(getSupportFragmentManager(), null);
+                        if (!f.delete())
+                            f.delete();
+                    } else {
+                        if (!f.delete())
+                            f.delete();
+                        this.finish();
+                    }
                 } else {
-                    if (!f.delete())
-                        f.delete();
-                    this.finish();
+                    ActivityCompat.requestPermissions(this,
+                            new String[]{permission.WRITE_EXTERNAL_STORAGE},
+                            REQUEST_STORAGE_PERMISSION);
                 }
 
                 return(true);
@@ -114,5 +132,6 @@ public class PictureViewer extends AppCompatActivity
     public void denied() {
         this.finish();
     }
+
 
 }
